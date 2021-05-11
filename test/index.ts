@@ -79,13 +79,13 @@ describe('resolveMongodbSrv', () => {
     });
 
     it('rejects when the TXT lookup rejects with a fatal error', async () => {
-      srvResult = [ { name: 'asdf.example.com', port: 27017 } ];
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
       txtError = Object.assign(new Error(), { code: 'ENOENT' });
       assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
     });
 
     it('does not reject when the TXT lookup results in ENOTFOUND', async () => {
-      srvResult = [ { name: 'asdf.example.com', port: 27017 } ];
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
       txtError = Object.assign(new Error(), { code: 'ENOTFOUND' });
       assert.strictEqual(
         await resolveMongodbSrv('mongodb+srv://server.example.com', { dns }),
@@ -93,7 +93,7 @@ describe('resolveMongodbSrv', () => {
     });
 
     it('does not reject when the TXT lookup results in a generic error', async () => {
-      srvResult = [ { name: 'asdf.example.com', port: 27017 } ];
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
       txtError = new Error();
       assert.strictEqual(
         await resolveMongodbSrv('mongodb+srv://server.example.com', { dns }),
@@ -101,63 +101,63 @@ describe('resolveMongodbSrv', () => {
     });
 
     it('rejects when the TXT lookup returns more than one result', async () => {
-      srvResult = [ { name: 'asdf.example.com', port: 27017 } ];
-      txtResult = [ [ 'a' ], [ 'b' ] ];
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
+      txtResult = [['a'], ['b']];
       assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
     });
 
     it('rejects when the TXT lookup returns invalid connection string options', async () => {
-      srvResult = [ { name: 'asdf.example.com', port: 27017 } ];
-      txtResult = [ [ 'a=b' ] ];
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
+      txtResult = [['a=b']];
       assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
     });
 
     it('accepts TXT lookup authSource', async () => {
-      srvResult = [ { name: 'asdf.example.com', port: 27017 } ];
-      txtResult = [ [ 'authSource=admin' ] ];
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
+      txtResult = [['authSource=admin']];
       assert.strictEqual(
         await resolveMongodbSrv('mongodb+srv://server.example.com', { dns }),
         'mongodb://asdf.example.com/?authSource=admin&tls=true');
     });
 
     it('rejects empty TXT lookup authSource', async () => {
-      srvResult = [ { name: 'asdf.example.com', port: 27017 } ];
-      txtResult = [ [ 'authSource=' ] ];
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
+      txtResult = [['authSource=']];
       assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
     });
 
     it('prioritizes URL-provided over TXT lookup authSource', async () => {
-      srvResult = [ { name: 'asdf.example.com', port: 27017 } ];
-      txtResult = [ [ 'authSource=admin' ] ];
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
+      txtResult = [['authSource=admin']];
       assert.strictEqual(
         await resolveMongodbSrv('mongodb+srv://server.example.com/?authSource=test', { dns }),
         'mongodb://asdf.example.com/?authSource=test&tls=true');
     });
 
     it('accepts TXT lookup replicaSet', async () => {
-      srvResult = [ { name: 'asdf.example.com', port: 27017 } ];
-      txtResult = [ [ 'replicaSet=foo' ] ];
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
+      txtResult = [['replicaSet=foo']];
       assert.strictEqual(
         await resolveMongodbSrv('mongodb+srv://server.example.com', { dns }),
         'mongodb://asdf.example.com/?replicaSet=foo&tls=true');
     });
 
     it('rejects empty TXT lookup replicaSet', async () => {
-      srvResult = [ { name: 'asdf.example.com', port: 27017 } ];
-      txtResult = [ [ 'replicaSet=' ] ];
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
+      txtResult = [['replicaSet=']];
       assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
     });
 
     it('prioritizes URL-provided over TXT lookup replicaSet', async () => {
-      srvResult = [ { name: 'asdf.example.com', port: 27017 } ];
-      txtResult = [ [ 'replicaSet=foo' ] ];
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
+      txtResult = [['replicaSet=foo']];
       assert.strictEqual(
         await resolveMongodbSrv('mongodb+srv://server.example.com/?replicaSet=bar', { dns }),
         'mongodb://asdf.example.com/?replicaSet=bar&tls=true');
     });
 
     it('prioritizes URL-provided tls over srv implication', async () => {
-      srvResult = [ { name: 'asdf.example.com', port: 27017 } ];
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
       assert.strictEqual(
         await resolveMongodbSrv('mongodb+srv://server.example.com/?tls=false', { dns }),
         'mongodb://asdf.example.com/?tls=false');
