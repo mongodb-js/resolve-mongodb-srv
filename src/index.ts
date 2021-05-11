@@ -4,8 +4,8 @@ class MongoParseError extends Error {}
 
 type Options = {
   dns?: {
-    resolveSrv(hostname: string, cb: (err: Error | undefined, addresses: { name: string, port: number }[] | undefined) => void): void;
-    resolveTxt(hostname: string, cb: (err: Error | undefined, addresses: string[][] | undefined) => void): void;
+    resolveSrv(hostname: string, cb: (err: Error | undefined | null, addresses: { name: string, port: number }[] | undefined) => void): void;
+    resolveTxt(hostname: string, cb: (err: Error | undefined | null, addresses: string[][] | undefined) => void): void;
   };
 };
 
