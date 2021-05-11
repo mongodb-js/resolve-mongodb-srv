@@ -173,7 +173,7 @@ describe('resolveMongodbSrv', () => {
       this.timeout(30_000);
 
       it('works', async () => {
-        const str = await resolveMongodbSrv('mongodb+srv://user:password@cluster0.ucdwm.mongodb.net/', dnsProvider);
+        const str = await resolveMongodbSrv('mongodb+srv://user:password@cluster0.ucdwm.mongodb.net/', { dns: dnsProvider } as any);
         assert([
           'mongodb://user:password@cluster0-shard-00-00.ucdwm.mongodb.net,cluster0-shard-00-01.ucdwm.mongodb.net,cluster0-shard-00-02.ucdwm.mongodb.net/?authSource=admin&replicaSet=atlas-jt9dqp-shard-0&tls=true',
           'mongodb://user:password@cluster0-shard-00-00.ucdwm.mongodb.net,cluster0-shard-00-02.ucdwm.mongodb.net,cluster0-shard-00-01.ucdwm.mongodb.net/?authSource=admin&replicaSet=atlas-jt9dqp-shard-0&tls=true',
