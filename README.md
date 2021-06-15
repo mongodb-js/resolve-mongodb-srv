@@ -1,6 +1,7 @@
 # resolve-mongodb-srv
 
-Resolve mongodb+srv:// URLs to mongodb:// URLs
+Resolve `mongodb+srv://` URLs to `mongodb://` URLs as specified in the
+[Initial DNS Seedlist Discovery Specification](https://github.com/mongodb/specifications/blob/master/source/initial-dns-seedlist-discovery/initial-dns-seedlist-discovery.rst).
 
 ```js
 import resolveMongodbSrv from 'resolve-mongodb-srv';

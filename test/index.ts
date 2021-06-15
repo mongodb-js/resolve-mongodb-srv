@@ -162,6 +162,34 @@ describe('resolveMongodbSrv', () => {
         await resolveMongodbSrv('mongodb+srv://server.example.com/?tls=false', { dns }),
         'mongodb://asdf.example.com/?tls=false');
     });
+
+    it('accepts TXT lookup loadBalanced', async () => {
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
+      txtResult = [['loadBalanced=true']];
+      assert.strictEqual(
+        await resolveMongodbSrv('mongodb+srv://server.example.com', { dns }),
+        'mongodb://asdf.example.com/?loadBalanced=true&tls=true');
+    });
+
+    it('rejects empty TXT lookup loadBalanced', async () => {
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
+      txtResult = [['loadBalanced=']];
+      assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
+    });
+
+    it('rejects non true/false TXT lookup loadBalanced', async () => {
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
+      txtResult = [['loadBalanced=bla']];
+      assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
+    });
+
+    it('prioritizes URL-provided over TXT lookup loadBalanced', async () => {
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
+      txtResult = [['loadBalanced=false']];
+      assert.strictEqual(
+        await resolveMongodbSrv('mongodb+srv://server.example.com/?loadBalanced=true', { dns }),
+        'mongodb://asdf.example.com/?loadBalanced=true&tls=true');
+    });
   });
 
   for (const [name, dnsProvider] of [
