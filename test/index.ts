@@ -190,6 +190,41 @@ describe('resolveMongodbSrv', () => {
         await resolveMongodbSrv('mongodb+srv://server.example.com/?loadBalanced=true', { dns }),
         'mongodb://asdf.example.com/?loadBalanced=true&tls=true');
     });
+
+    it('allows specifying a custom SRV service name', async () => {
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
+      txtResult = [['loadBalanced=false']];
+      assert.strictEqual(
+        await resolveMongodbSrv('mongodb+srv://server.example.com/?loadBalanced=true&srvServiceName=custom', { dns }),
+        'mongodb://asdf.example.com/?loadBalanced=true&tls=true');
+      assert.deepStrictEqual(srvQueries, ['_custom._tcp.server.example.com']);
+    });
+
+    it('defaults to _mongodb._tcp as a SRV service name', async () => {
+      srvResult = [{ name: 'asdf.example.com', port: 27017 }];
+      txtResult = [['loadBalanced=false']];
+      assert.strictEqual(
+        await resolveMongodbSrv('mongodb+srv://server.example.com/?loadBalanced=true', { dns }),
+        'mongodb://asdf.example.com/?loadBalanced=true&tls=true');
+      assert.deepStrictEqual(srvQueries, ['_mongodb._tcp.server.example.com']);
+    });
+
+    it('allows limiting the SRV result to a specific number of hosts', async () => {
+      srvResult = ['host1', 'host2', 'host3'].map(name => ({ name: `${name}.example.com`, port: 27017 }));
+      txtResult = [];
+      assert.strictEqual(
+        await resolveMongodbSrv('mongodb+srv://server.example.com/?srvMaxHosts=0', { dns }),
+        'mongodb://host1.example.com,host2.example.com,host3.example.com/?tls=true');
+      assert.strictEqual(
+        await resolveMongodbSrv('mongodb+srv://server.example.com/?srvMaxHosts=3', { dns }),
+        'mongodb://host1.example.com,host2.example.com,host3.example.com/?tls=true');
+      assert.strictEqual(
+        await resolveMongodbSrv('mongodb+srv://server.example.com/?srvMaxHosts=6', { dns }),
+        'mongodb://host1.example.com,host2.example.com,host3.example.com/?tls=true');
+      assert.match(
+        await resolveMongodbSrv('mongodb+srv://server.example.com/?srvMaxHosts=1', { dns }),
+        /^mongodb:\/\/host[1-3]\.example\.com\/\?tls=true$/);
+    });
   });
 
   for (const [name, dnsProvider] of [

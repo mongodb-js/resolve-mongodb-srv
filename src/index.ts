@@ -20,8 +20,8 @@ function matchesParentDomain (srvAddress: string, parentDomain: string): boolean
   return srv.endsWith(parent);
 }
 
-async function resolveDnsSrvRecord (dns: NonNullable<Options['dns']>, lookupAddress: string): Promise<string[]> {
-  const addresses = await promisify(dns.resolveSrv)(`_mongodb._tcp.${lookupAddress}`);
+async function resolveDnsSrvRecord (dns: NonNullable<Options['dns']>, lookupAddress: string, srvServiceName: string): Promise<string[]> {
+  const addresses = await promisify(dns.resolveSrv)(`_${srvServiceName}._tcp.${lookupAddress}`);
   if (!addresses?.length) {
     throw new MongoParseError('No addresses found at host');
   }
@@ -39,8 +39,8 @@ async function resolveDnsTxtRecord (dns: NonNullable<Options['dns']>, lookupAddr
   let records: string[][] | undefined;
   try {
     records = await promisify(dns.resolveTxt)(lookupAddress);
-  } catch (err) {
-    if (err.code && (err.code !== 'ENODATA' && err.code !== 'ENOTFOUND')) {
+  } catch (err: any) {
+    if (err?.code && (err.code !== 'ENODATA' && err.code !== 'ENOTFOUND')) {
       throw err;
     }
   }
@@ -89,10 +89,18 @@ async function resolveMongodbSrv (input: string, options?: Options): Promise<str
   }
 
   const lookupAddress = url.hostname;
+  const srvServiceName = url.searchParams.get('srvServiceName') || 'mongodb';
+  const srvMaxHosts = +(url.searchParams.get('srvMaxHosts') || '0');
+
   const [srvResult, txtResult] = await Promise.all([
-    resolveDnsSrvRecord(dns, lookupAddress),
+    resolveDnsSrvRecord(dns, lookupAddress, srvServiceName),
     resolveDnsTxtRecord(dns, lookupAddress)
   ]);
+
+  if (srvMaxHosts && srvMaxHosts < srvResult.length) {
+    // Replace srvResult with shuffled + limited srvResult
+    srvResult.splice(0, srvResult.length, ...shuffle(srvResult, srvMaxHosts));
+  }
 
   url.protocol = 'mongodb:';
   url.hostname = '__DUMMY_HOSTNAME__';
@@ -107,8 +115,39 @@ async function resolveMongodbSrv (input: string, options?: Options): Promise<str
   if (!url.searchParams.has('tls') && !url.searchParams.has('ssl')) {
     url.searchParams.set('tls', 'true');
   }
+  url.searchParams.delete('srvServiceName');
+  url.searchParams.delete('srvMaxHosts');
 
   return url.toString().replace('__DUMMY_HOSTNAME__', srvResult.join(','));
+}
+
+/**
+ * Fisher–Yates Shuffle
+ * (shamelessly copied from https://github.com/mongodb/node-mongodb-native/blob/1f8b539cd3d60dd9f36baa22fd287241b5c65380/src/utils.ts#L1423-L1451)
+ *
+ * Reference: https://bost.ocks.org/mike/shuffle/
+ * @param sequence - items to be shuffled
+ * @param limit - Defaults to `0`. If nonzero shuffle will slice the randomized array e.g, `.slice(0, limit)` otherwise will return the entire randomized array.
+ */
+function shuffle<T> (sequence: Iterable<T>, limit = 0): Array<T> {
+  const items = Array.from(sequence); // shallow copy in order to never shuffle the input
+
+  limit = Math.min(limit, items.length);
+
+  let remainingItemsToShuffle = items.length;
+  const lowerBound = limit % items.length === 0 ? 1 : items.length - limit;
+  while (remainingItemsToShuffle > lowerBound) {
+    // Pick a remaining element
+    const randomIndex = Math.floor(Math.random() * remainingItemsToShuffle);
+    remainingItemsToShuffle -= 1;
+
+    // And swap it with the current element
+    const swapHold = items[remainingItemsToShuffle];
+    items[remainingItemsToShuffle] = items[randomIndex];
+    items[randomIndex] = swapHold;
+  }
+
+  return limit % items.length === 0 ? items : items.slice(lowerBound);
 }
 
 export = resolveMongodbSrv;
