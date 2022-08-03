@@ -18,6 +18,9 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - name: Install Dependencies
-        run: npm install
+        run: |
+          npm config set node_gyp "$PWD/node_modules/node-gyp/bin/node-gyp.js"
+          npm config get node_gyp
+          npm install
       - name: Test
         run: npm test
