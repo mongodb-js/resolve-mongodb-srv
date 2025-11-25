@@ -15,8 +15,8 @@ const ALLOWED_TXT_OPTIONS: Readonly<string[]> = ['authSource', 'replicaSet', 'lo
 
 function matchesParentDomain (srvAddress: string, parentDomain: string): boolean {
   const regex = /^.*?\./;
-  const srv = `.${(srvAddress.endsWith(".") ? srvAddress.slice(0, -1) : srvAddress).replace(regex, "")}`;
-  const parent = `.${(parentDomain.endsWith(".") ? parentDomain.slice(0, -1) : parentDomain).replace(regex, "")}`;
+  const srv = `.${(srvAddress.endsWith('.') ? srvAddress.slice(0, -1) : srvAddress).replace(regex, '')}`;
+  const parent = `.${(parentDomain.endsWith('.') ? parentDomain.slice(0, -1) : parentDomain).replace(regex, '')}`;
   return srv.endsWith(parent);
 }
 
