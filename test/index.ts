@@ -225,6 +225,34 @@ describe('resolveMongodbSrv', () => {
         await resolveMongodbSrv('mongodb+srv://server.example.com/?srvMaxHosts=1', { dns }),
         /^mongodb:\/\/host[1-3]\.example\.com\/\?tls=true$/);
     });
+
+    it('rejects SRV records without additional subdomain when parent domain has fewer than 3 parts', async () => {
+      txtResult = [];
+      srvResult = [{ name: 'example.com', port: 27017 }];
+      await assert.rejects(resolveMongodbSrv('mongodb+srv://example.com', { dns }));
+    });
+
+    it('allow trailing dot in SRV lookup', async () => {
+      txtResult = [];
+      srvResult = [
+        { name: 'asdf.example.com', port: 27017 },
+        { name: 'meow.example.com', port: 27017 }
+      ];
+      assert.strictEqual(
+        await resolveMongodbSrv('mongodb+srv://server.example.com.', { dns }),
+        'mongodb://asdf.example.com,meow.example.com/?tls=true');
+
+      srvResult = [
+        { name: 'asdf.example.com.', port: 27017 },
+        { name: 'meow.example.com', port: 27017 }
+      ];
+      assert.strictEqual(
+        await resolveMongodbSrv('mongodb+srv://server.example.com', { dns }),
+        'mongodb://asdf.example.com.,meow.example.com/?tls=true');
+      assert.strictEqual(
+        await resolveMongodbSrv('mongodb+srv://server.example.com.', { dns }),
+        'mongodb://asdf.example.com.,meow.example.com/?tls=true');
+    });
   });
 
   for (const [name, dnsProvider] of [
