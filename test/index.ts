@@ -49,26 +49,26 @@ describe('resolveMongodbSrv', () => {
     });
 
     it('rejects non-mongodb schemes', async () => {
-      assert.rejects(resolveMongodbSrv('http://somewhere.example.com', { dns }));
+      await assert.rejects(resolveMongodbSrv('http://somewhere.example.com', { dns }));
     });
 
     it('rejects mongodb+srv with port', async () => {
-      assert.rejects(resolveMongodbSrv('mongodb+srv://somewhere.example.com:27017', { dns }));
+      await assert.rejects(resolveMongodbSrv('mongodb+srv://somewhere.example.com:27017', { dns }));
     });
 
     it('rejects when the SRV lookup rejects', async () => {
       srvError = new Error();
-      assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
+      await assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
     });
 
     it('rejects when the SRV lookup returns no results', async () => {
       srvResult = [];
-      assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
+      await assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
     });
 
     it('rejects when the SRV lookup returns foreign hostnames', async () => {
       srvResult = [{ name: 'server.example.org', port: 27017 }];
-      assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
+      await assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
     });
 
     it('respects SRV-provided ports', async () => {
@@ -81,7 +81,7 @@ describe('resolveMongodbSrv', () => {
     it('rejects when the TXT lookup rejects with a fatal error', async () => {
       srvResult = [{ name: 'asdf.example.com', port: 27017 }];
       txtError = Object.assign(new Error(), { code: 'ENOENT' });
-      assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
+      await assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
     });
 
     it('does not reject when the TXT lookup results in ENOTFOUND', async () => {
@@ -103,13 +103,13 @@ describe('resolveMongodbSrv', () => {
     it('rejects when the TXT lookup returns more than one result', async () => {
       srvResult = [{ name: 'asdf.example.com', port: 27017 }];
       txtResult = [['a'], ['b']];
-      assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
+      await assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
     });
 
     it('rejects when the TXT lookup returns invalid connection string options', async () => {
       srvResult = [{ name: 'asdf.example.com', port: 27017 }];
       txtResult = [['a=b']];
-      assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
+      await assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
     });
 
     it('accepts TXT lookup authSource', async () => {
@@ -123,7 +123,7 @@ describe('resolveMongodbSrv', () => {
     it('rejects empty TXT lookup authSource', async () => {
       srvResult = [{ name: 'asdf.example.com', port: 27017 }];
       txtResult = [['authSource=']];
-      assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
+      await assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
     });
 
     it('prioritizes URL-provided over TXT lookup authSource', async () => {
@@ -145,7 +145,7 @@ describe('resolveMongodbSrv', () => {
     it('rejects empty TXT lookup replicaSet', async () => {
       srvResult = [{ name: 'asdf.example.com', port: 27017 }];
       txtResult = [['replicaSet=']];
-      assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
+      await assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
     });
 
     it('prioritizes URL-provided over TXT lookup replicaSet', async () => {
@@ -174,13 +174,13 @@ describe('resolveMongodbSrv', () => {
     it('rejects empty TXT lookup loadBalanced', async () => {
       srvResult = [{ name: 'asdf.example.com', port: 27017 }];
       txtResult = [['loadBalanced=']];
-      assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
+      await assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
     });
 
     it('rejects non true/false TXT lookup loadBalanced', async () => {
       srvResult = [{ name: 'asdf.example.com', port: 27017 }];
       txtResult = [['loadBalanced=bla']];
-      assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
+      await assert.rejects(resolveMongodbSrv('mongodb+srv://server.example.com', { dns }));
     });
 
     it('prioritizes URL-provided over TXT lookup loadBalanced', async () => {
@@ -229,6 +229,12 @@ describe('resolveMongodbSrv', () => {
     it('rejects SRV records without additional subdomain when parent domain has fewer than 3 parts', async () => {
       txtResult = [];
       srvResult = [{ name: 'example.com', port: 27017 }];
+      await assert.rejects(resolveMongodbSrv('mongodb+srv://example.com', { dns }));
+    });
+
+    it('not strip first subdomain when parent domain has fewer than 3 part to prevent TLD-only matching', async () => {
+      txtResult = [];
+      srvResult = [{ name: 'asdf.malicious.com', port: 27017 }];
       await assert.rejects(resolveMongodbSrv('mongodb+srv://example.com', { dns }));
     });
 
