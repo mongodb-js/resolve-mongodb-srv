@@ -13,11 +13,24 @@ type Options = {
 
 const ALLOWED_TXT_OPTIONS: Readonly<string[]> = ['authSource', 'replicaSet', 'loadBalanced'];
 
-function matchesParentDomain (srvAddress: string, parentDomain: string): boolean {
-  const regex = /^.*?\./;
-  const srv = `.${srvAddress.replace(regex, '')}`;
-  const parent = `.${parentDomain.replace(regex, '')}`;
-  return srv.endsWith(parent);
+function matchesParentDomain (address: string, parentDomain: string): void {
+  const normalize = (s: string): string => (s.endsWith('.') ? s.slice(0, -1) : s);
+  const addr = normalize(address);
+  const parent = normalize(parentDomain);
+
+  const addrParts = addr.split('.');
+  const parentParts = parent.split('.');
+  const isParentShort = parentParts.length < 3;
+  if (isParentShort && addrParts.length <= parentParts.length) {
+    throw new MongoParseError('Server record does not have at least one more domain level than parent URI');
+  }
+
+  // Prevent insecure "TLD-only matching" on short domains
+  const requiredSuffix = `.${parentParts.slice(isParentShort ? 0 : 1).join('.')}`;
+  const addrSuffix = `.${addrParts.slice(1).join('.')}`;
+  if (!addrSuffix.endsWith(requiredSuffix)) {
+    throw new MongoParseError('Server record does not share hostname with parent URI');
+  }
 }
 
 async function resolveDnsSrvRecord (dns: NonNullable<Options['dns']>, lookupAddress: string, srvServiceName: string): Promise<string[]> {
@@ -27,9 +40,7 @@ async function resolveDnsSrvRecord (dns: NonNullable<Options['dns']>, lookupAddr
   }
 
   for (const { name } of addresses) {
-    if (!matchesParentDomain(name, lookupAddress)) {
-      throw new MongoParseError('Server record does not share hostname with parent URI');
-    }
+    matchesParentDomain(name, lookupAddress);
   }
 
   return addresses.map(r => r.name + ((r.port ?? 27017) === 27017 ? '' : `:${r.port}`));
