@@ -20,6 +20,24 @@ import resolveMongodbSrv from 'resolve-mongodb-srv';
 await resolveMongodbSrv('hostname', { dns });
 ```
 
+When only one step of the resolution is needed (for example the driver-mirroring
+DNS TXT-record parsing), the DNS helpers are available as public exports on the
+module:
+
+```js
+import resolveMongodbSrv from 'resolve-mongodb-srv';
+
+// Parse a hostname's DNS TXT record into a URLSearchParams containing the
+// driver-sanctioned connection options (authSource, replicaSet, loadBalanced),
+// mirroring the driver's own TXT validation.
+const params = await resolveMongodbSrv.resolveDnsTxtRecord(dns, 'cluster0.example.com');
+
+// Resolve the SRV records for a service and hostname.
+const addresses = await resolveMongodbSrv.resolveDnsSrvRecord(dns, 'cluster0.example.com', 'mongodb');
+```
+
+Both helpers throw `resolveMongodbSrv.MongoParseError` on invalid input.
+
 ## LICENSE
 
 Apache-2.0

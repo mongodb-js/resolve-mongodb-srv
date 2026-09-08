@@ -282,4 +282,75 @@ describe('resolveMongodbSrv', () => {
       });
     });
   }
+
+  context('public resolveDnsTxtRecord / resolveDnsSrvRecord exports', () => {
+    let txtError: Error | null;
+    let txtResult: string[][];
+    let txtQueries: string[];
+
+    const dns = {
+      resolveTxt (hostname: string, cb: any): void {
+        txtQueries.push(hostname);
+        process.nextTick(cb, txtError, txtResult);
+      },
+      resolveSrv (hostname: string, cb: any): void {
+        process.nextTick(cb, null, []);
+      }
+    };
+
+    beforeEach(() => {
+      txtError = null;
+      txtResult = [];
+      txtQueries = [];
+    });
+
+    it('exposes a callable resolveDnsTxtRecord on the default export', async () => {
+      assert.strictEqual(typeof resolveMongodbSrv.resolveDnsTxtRecord, 'function');
+    });
+
+    it('parses loadBalanced and replicaSet from a resolved TXT record', async () => {
+      txtResult = [['loadBalanced=true&replicaSet=atlas-abcde-shard-0']];
+      const params = await resolveMongodbSrv.resolveDnsTxtRecord(dns, 'cluster0.example.com');
+      assert.strictEqual(params.get('loadBalanced'), 'true');
+      assert.strictEqual(params.get('replicaSet'), 'atlas-abcde-shard-0');
+    });
+
+    it('concatenates the chunks of a single record before parsing', async () => {
+      txtResult = [['authSource=admin', '&loadBalanced', '=true']];
+      const params = await resolveMongodbSrv.resolveDnsTxtRecord(dns, 'cluster0.example.com');
+      assert.strictEqual(params.get('loadBalanced'), 'true');
+      assert.strictEqual(params.get('authSource'), 'admin');
+    });
+
+    it('rejects a key outside the allow-list', async () => {
+      txtResult = [['authSource=admin&appName=my-app&loadBalanced=true']];
+      await assert.rejects(
+        resolveMongodbSrv.resolveDnsTxtRecord(dns, 'cluster0.example.com'),
+        /must only set/);
+    });
+
+    it('rejects an empty value for a known key', async () => {
+      txtResult = [['authSource=&loadBalanced=true']];
+      await assert.rejects(
+        resolveMongodbSrv.resolveDnsTxtRecord(dns, 'cluster0.example.com'),
+        /Cannot have empty URI params/);
+    });
+
+    it('rejects multiple TXT records', async () => {
+      txtResult = [['loadBalanced=true'], ['replicaSet=atlas-abcde-shard-0']];
+      await assert.rejects(
+        resolveMongodbSrv.resolveDnsTxtRecord(dns, 'cluster0.example.com'),
+        /Multiple text records not allowed/);
+    });
+
+    it('falls back to empty params on a DNS lookup failure', async () => {
+      txtError = Object.assign(new Error('queryTxt ENOTFOUND host.example'), { code: 'ENOTFOUND' });
+      const params = await resolveMongodbSrv.resolveDnsTxtRecord(dns, 'cluster0.example.com');
+      assert.strictEqual(params.get('loadBalanced'), null);
+    });
+
+    it('exposes MongoParseError for caller error handling', () => {
+      assert.strictEqual(typeof resolveMongodbSrv.MongoParseError, 'function');
+    });
+  });
 });

@@ -161,4 +161,21 @@ function shuffle<T> (sequence: Iterable<T>, limit = 0): Array<T> {
   return limit % items.length === 0 ? items : items.slice(lowerBound);
 }
 
-export = resolveMongodbSrv;
+// The DNS helpers are first-class public exports so callers that only need one
+// step of the resolution (e.g. the driver-mirroring TXT-record parsing/validation)
+// can reuse it directly instead of re-implementing the same semantics. The default
+// export stays the callable `resolveMongodbSrv`, so `require()` / `import` of the
+// function itself is unchanged.
+type ResolveMongodbSrv = typeof resolveMongodbSrv & {
+  MongoParseError: typeof MongoParseError;
+  resolveDnsSrvRecord: typeof resolveDnsSrvRecord;
+  resolveDnsTxtRecord: typeof resolveDnsTxtRecord;
+};
+
+const exported: ResolveMongodbSrv = Object.assign(resolveMongodbSrv, {
+  MongoParseError,
+  resolveDnsSrvRecord,
+  resolveDnsTxtRecord
+});
+
+export = exported;
